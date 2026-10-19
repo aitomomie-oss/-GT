@@ -1,6 +1,6 @@
 # 変更対象ファイル一覧
 
-## 今回の変更（文書だけ）
+## 調査段階で追加した文書・保全用補助ツール
 
 | ファイル | 内容 |
 |---|---|
@@ -43,3 +43,9 @@ Gitブランチを作成し、クラウドの基準コードと非秘密の設�
 `起動.bat`、`自動更新.bat`、`UPDATE.bat`、`tools/windows_update.py`、`.streamlit/secrets.toml`、実DBの既存行は今回の変更対象外です。requirements.txtの追加ライブラリも現時点では不要とする設計です。
 
 本番の置換・移行はこの一覧だけを根拠に実行せず、実装後の具体的な差分と検証結果を確認してから別途進めます。
+
+## 次段階の準備で追加するもの
+
+`prep/my-ai-asset-next` では、ユーザーからの継続依頼を受け、`development_preparation.md`、`prepare_development.py`、`development_checks.py`、`migration_checks.py`を追加します。READMEから案内を追加します。アプリ本体・pages・src・既存tests・起動バッチ・要件ファイルは変更しません。
+
+補助手段は、Windowsで確認済みのバックアップを参照し、別の開発コピーと比較報告を作る用途です。DB移行はクラウドの一時的な架空DBだけで試験し、ユーザーの本番やバックアップへは適用しません。

@@ -10,6 +10,7 @@
 | [安全な開発計画](development_plan.md) | 確認条件、移行・検証・復旧の順序 |
 | [バックアップ確認結果](backup_verification.md) | クラウドの保全実績とWindowsでの未確認事項 |
 | [Windowsでの確認手順](windows_verification.md) | 起動元・DB・設定を漏えいさせずに確認する手順 |
+| [開発コピーの準備・版とDBの比較](development_preparation.md) | 次段階の補助手段、クラウドでの互換性試験、Windowsでの実行待ち事項 |
 
 調査コードの基準コミット：`0eaedc06b674c7b813580f030c6b9f1802b04844`。
 調査用ブランチ：`audit/my-ai-asset-next`。
@@ -27,3 +28,5 @@
 [バックアップ専用の補助スクリプト](backup_windows.py)を追加しました。アプリ機能の実装ではなく、確認済みのフォルダーをPC内で保全するための単独ツールです。[仕様・テスト・Windowsでの成功結果](backup_verification.md)を確認してください。
 
 今回の調査・バックアップ・設計の成果物は以上です。既存アプリを変更せず、確認できなかった項目も明記して報告します。NEXTの機能実装・Windowsアプリの更新・本番DBの移行は開始しません。
+
+その後の「進めてください」の依頼では、[開発コピーの準備・版とDBの比較](development_preparation.md)を進めています。専用ブランチは `prep/my-ai-asset-next`。元の調査結果とWindowsバックアップを保全し、アプリの実装変更へ進む前にコピーと実構造を確認します。
