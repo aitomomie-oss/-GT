@@ -1,9 +1,11 @@
 import streamlit as st
 
 st.set_page_config(page_title='MY AI ASSET', page_icon='📊', layout='wide')
+from src.ui_style import apply
+apply()
 st.title('MY AI ASSET')
-st.caption('自分専用の資産管理 | SBI証券・PayPay証券 | ローカルSQLite保存')
-st.info('保有資産の価格・為替は手動更新です。候補探索は任意の市場データAPIに対応します。証券会社への接続や自動発注は行いません。')
+st.caption('自分専用の資産管理 | SBI証券・PayPay証券 | データはPC内に保存')
+st.caption('資産を確認する → 積立を整える → 気になる銘柄をウォッチする')
 # Only local initialization and scheduling happen here; HTTP runs in a worker.
 from contextlib import closing
 from src.db.session import connect
@@ -16,7 +18,7 @@ try:
 except (ValueError,OSError):
     st.warning('候補の自動更新を開始できませんでした。既存画面でデータベースの状態を確認してください。')
 
-st.navigation([
+pages=st.navigation([
     st.Page('pages/1_ホーム.py', title='ホーム', default=True),
     st.Page('pages/2_保有資産.py', title='保有資産'),
     st.Page('pages/3_積立プラン.py', title='積立プラン'),
@@ -24,4 +26,7 @@ st.navigation([
     st.Page('pages/5_資産シミュレーション.py', title='資産シミュレーション'),
     st.Page('pages/6_データ管理.py', title='データ管理'),
     st.Page('pages/7_AI銘柄探索.py', title='AI銘柄探索'),
-], position='top').run()
+], position='top')
+from src.ui_style import navigation_help
+navigation_help()
+pages.run()

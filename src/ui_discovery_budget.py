@@ -4,6 +4,7 @@ import streamlit as st
 from src.services import discovery_budget as b, budget
 from src.services.portfolio import holdings, totals
 from src.utils.decimal_utils import today_jst
+from src.ui_presentation import amount
 
 NISA_LABELS={
 'annual_tsumitate_used':'年間つみたて枠の使用済額','annual_growth_used':'年間成長枠の使用済額',
@@ -20,21 +21,27 @@ def settings(db):
         if st.form_submit_button('今月の予算を保存'):
             budget.set_target(db,value);st.success('今月の予算を保存しました。')
     values=b.available(db)
-    st.write({'対象月':month,'月間予算':str(values['cap']),'積立済み':str(values['actual']),'未実施積立予定':str(values['pending']),
-        '投資可能額':str(values['available']),'予算超過額':str(values['overrun'])})
+    left,middle,right=st.columns(3)
+    left.metric('この画面の積立後残予算',amount(values['available']))
+    middle.metric('積立済み',amount(values['actual']))
+    right.metric('今後の積立予定',amount(values['pending']))
+    st.caption('この欄は既存の積立計算です。その他の購入実績も含む投資可能額はホームで確認できます。')
+    if values['overrun']>0: st.warning('積立の予算超過額: '+amount(values['overrun']))
     with st.expander('NISAの使用額・予約額を確認して登録'):
         st.caption('SBIの公式口座画面を確認し、全金融機関を通じた新NISAの取得額を入力します。売却後に翌年復活する枠を当年に加算しないでください。旧NISAを含めません。不明は空欄、確認したゼロは0です。')
         year=today_jst().year
         old=b.load(db,'auto_nisa_balances','year',year)
         with st.form('auto_nisa_form'):
-            amounts={k:st.number_input(label+'（円）',min_value=0,value=int(old[k]) if old.get(k) is not None else None,step=100,key='auto_nisa_'+k) for k,label in NISA_LABELS.items()}
+            fields=st.columns(2)
+            amounts={k:fields[i%2].number_input(label+'（円）',min_value=0,value=int(old[k]) if old.get(k) is not None else None,step=100,key='auto_nisa_'+k) for i,(k,label) in enumerate(NISA_LABELS.items())}
             day=st.date_input('NISA口座確認日',today_jst(),max_value=today_jst(),key='auto_nisa_day')
             source=st.text_input('確認したSBI公式ページURL（認証トークン等を含めない）',value=old.get('source',''),key='auto_nisa_source')
             confirm=st.checkbox('公式画面で確認し、使用済と未約定予定を重複させず入力しました',key='auto_nisa_confirm')
             if st.form_submit_button('NISA確認値を保存',disabled=not confirm):
                 try: b.save_nisa(db,year,amounts,day,source);st.success('確認値を保存しました。')
                 except ValueError as exc: st.error(str(exc))
-        st.write('予約分を差し引いたNISA残枠（不明は空欄）',b.nisa_remaining(db,year))
+        st.write('予約分を差し引いたNISA残枠')
+        st.dataframe(pd.DataFrame([{'投資枠':name,'残額':amount(value,missing='未確認')} for name,value in b.nisa_remaining(db,year).items()]),hide_index=True,width='stretch')
         st.caption('年間つみたて120万円、成長240万円、生涯総枠1800万円（うち成長1200万円）。入力は31日で要再確認。自動で取引や売却から残枠を推測しません。')
 
 
