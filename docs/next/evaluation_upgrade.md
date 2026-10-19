@@ -41,4 +41,23 @@
 
 [evaluation_preparation_checks.py](evaluation_preparation_checks.py) の8件がLinux / Python 3.12で成功。日本語パス、元DBのバイト不変、元起動バッチ不変、秘密設定の私的バックアップと新アプリへの非コピー、未知の表・ビューと重複行の保全、ソース改変/未知Python/取得改変/DB欠損の拒否、移行失敗/テスト失敗時の起動バッチ非生成を確認しました。
 
-実コミットから作成した旧版の架空DBを移行し、新コピーの全237テストが成功（11.47秒）。初回検証ではCSV/PDFサンプルのコピー漏れで4テストが失敗し、サンプルと説明資料を含めた固定ファイル一覧へ修正してから上記を再確認しています。実データでのWindows移行・237テスト・新画面表示は、ユーザーによる実行結果をまだ受領していません。
+実コミットから作成した旧版の架空DBを移行し、新コピーの全237テストが成功（11.47秒）。初回検証ではCSV/PDFサンプルのコピー漏れで4テストが失敗し、サンプルと説明資料を含めた固定ファイル一覧へ修正してから上記を再確認しています。
+
+## Windowsでの移行成功（ユーザー実行結果）
+
+2026年10月20日（日本時間）、以下の結果を受領しました。
+
+- `237 passed in 40.40s` / `NEXT_EVALUATION_READY`。
+- 新コピー：`%USERPROFILE%/MY_AI_ASSET_Development/MY_AI_ASSET_NEXT_evaluation_dev_20261020_081047_0f20662e`。
+- バックアップ：元開発コピー内 `backups/before_evaluation_20261020_081047_0f20662e`。
+- `Tables: 31 -> 33`。補助ツールの既存スキーマ・全行保全確認と全テストが成功。
+- `Original app / database / settings / launchers: NOT CHANGED`。
+- `API: NOT RUN / Background: DISABLED / New app port: 8506`。
+
+Windowsでの新コピー作成・実DBコピーの追加移行・回帰テストを確認済みです。新アプリの起動と「検証・評価履歴」画面のユーザーによる表示確認は次の段階です。API認証・本番運用への切替は行っていません。
+
+```powershell
+& (Join-Path $env:USERPROFILE 'MY_AI_ASSET_Development\MY_AI_ASSET_NEXT_evaluation_dev_20261020_081047_0f20662e\評価履歴_開発用起動.bat')
+```
+
+上記のPowerShellを開いたまま、ブラウザーで `http://127.0.0.1:8506` を開きます。保存済み資産・積立プランと、上部の「検証・評価履歴」の表示を確認してください。履歴対象となる候補がなければ履歴が空でも異常ではありません。初回の確認ではAPI更新や実データの編集を行いません。
