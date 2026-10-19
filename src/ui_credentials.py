@@ -19,7 +19,7 @@ def render():
         st.write('起動時の作業フォルダ: '+status['working_directory'])
         for code in status['issues']: st.caption(ISSUES.get(code,'設定を確認してください。'))
         st.caption('設定後は「銘柄一覧を取得・更新」を押してください。別の旧アプリの設定ファイルだけにキーがある場合は、このアプリの.streamlitへコピーします。キーをチャットへ送らないでください。')
-        st.caption('API V2: x-api-keyヘッダー。実通信は同一キーにつきこのプロセスで60秒に5回まで。429時はRetry-After（最低60秒）を待ち、連続自動再試行しません。別プロセスの利用数は共有できません。')
+        st.caption('API V2: x-api-keyヘッダー。実通信は同一キーにつきこのプロセスで60秒に5回まで。429時はRetry-After（最低60秒）を待ち、バックグラウンド更新は待機後に間隔を延ばして再試行します。別プロセスの利用数は共有できません。')
 
 
 def show_error(exc):

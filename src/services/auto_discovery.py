@@ -97,7 +97,8 @@ def evaluate(db,row,context=None):
         valid_price=(today_jst()-date.fromisoformat(price['as_of'])).days<=7 and not price.get('delayed')
     if not valid_price: reasons.append('株価が未取得・遅延・古い・更新失敗。参考価格を現在価格として使用しません。')
     f={}; f_ok=False; f_source={}
-    for candidate in context['candidates'].values():
+    matched=context['candidates'].get(code_key(row['code'],'日本株','JPY'))
+    for candidate in ([matched] if matched else []):
         if candidate['asset_type']=='日本株' and code_key(candidate['code'],'日本株','JPY')==code_key(row['code'],'日本株','JPY'):
             obs=rd.observations(db,candidate['id']).get('fundamentals',{})
             good=obs.get('last_success')

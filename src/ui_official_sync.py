@@ -6,8 +6,7 @@ DEFAULTS={'halts':'https://www.jpx.co.jp/markets/equities/suspended/index.html',
 
 
 def render(db):
-    # Refresh only configured sources, during app use. There is no external background service.
-    for row in official.sources(db): official.sync(db,row['id'])
+    # Startup worker refreshes configured sources without blocking the screen.
     with st.expander('公式一覧の自動同期・取引停止検知'):
         st.caption('設定後はアプリ利用時に期限切れの資料を自動更新します。停止情報15分、NISA対象一覧24時間。取得日時と資料基準日を別々に記録します。')
         st.caption('案内ページに複数の対象資料がある場合は、正しい対象区分のCSV/XLSX/PDFの公式URLを指定してください。未対応の列・更新日・PDF配置は推測せず更新失敗として表示します。')

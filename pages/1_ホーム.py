@@ -22,6 +22,8 @@ def render(db, rows, total, cost):
     d.metric('月内残予算',money(cap-actual))
     if actual>cap:
         st.warning('月間投資予算を超過しています。')
+    from src.ui_home_ranking import render as render_candidates
+    render_candidates(db)
     if rows:
         for key,title in [('broker','証券会社別'),('asset_type','資産分類別'),('account','口座区分別')]:
             grouped=[]

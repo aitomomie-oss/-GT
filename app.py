@@ -4,6 +4,18 @@ st.set_page_config(page_title='MY AI ASSET', page_icon='📊', layout='wide')
 st.title('MY AI ASSET')
 st.caption('自分専用の資産管理 | SBI証券・PayPay証券 | ローカルSQLite保存')
 st.info('保有資産の価格・為替は手動更新です。候補探索は任意の市場データAPIに対応します。証券会社への接続や自動発注は行いません。')
+# Only local initialization and scheduling happen here; HTTP runs in a worker.
+from contextlib import closing
+from src.db.session import connect
+from src.ui import database_path
+from src.services.ranking_refresh import schedule
+try:
+    with closing(connect(database_path())):
+        pass
+    schedule(database_path())
+except (ValueError,OSError):
+    st.warning('候補の自動更新を開始できませんでした。既存画面でデータベースの状態を確認してください。')
+
 st.navigation([
     st.Page('pages/1_ホーム.py', title='ホーム', default=True),
     st.Page('pages/2_保有資産.py', title='保有資産'),

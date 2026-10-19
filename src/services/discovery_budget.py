@@ -82,7 +82,7 @@ def purchase(db,result,mode='単元未満株',month=None):
     if official['halt']!='未確認': reasons.append('公式取引停止情報: '+official['halt'])
     if official['nisa']!='不明':
         terms=dict(terms,nisa=official['nisa'])
-    if not terms or (today_jst()-date.fromisoformat(terms['as_of'])).days>90:
+    if not terms.get('as_of') or (today_jst()-date.fromisoformat(terms['as_of'])).days>90:
         reasons.append('購入条件・NISA対象の確認が必要です。');terms={'nisa':official['nisa']}
     if terms.get('sbi')!='可': reasons.append('SBI取扱い未確認または不可。')
     if terms.get('nisa') not in ('成長','両方'): reasons.append('日本株の成長投資枠対象を公式情報で確認してください。')

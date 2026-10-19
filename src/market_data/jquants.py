@@ -31,7 +31,9 @@ def transport(path,params,key):
             return json.loads(raw)
     except HTTPError as e:
         if e.code==429: BUDGET.defer(key,e.headers.get('Retry-After','60') if e.headers else 60)
-        raise MarketDataError({401:'unauthorized',403:'forbidden',429:'rate_limit'}.get(e.code,'network')) from None
+        error=MarketDataError({401:'unauthorized',403:'forbidden',429:'rate_limit'}.get(e.code,'network'))
+        if e.code==429: error.retry_after=BUDGET.wait_seconds(key)
+        raise error from None
     except (URLError,TimeoutError,OSError):
         raise MarketDataError('network') from None
     except (ValueError,UnicodeError):
@@ -97,6 +99,7 @@ class JQuantsV2:
         if not rows: raise MarketDataError('empty')
         normalized=[]
         seen=set()
+        volumes={}
         try:
             for row in rows:
                 rcode=self._code(row['Code'])
@@ -109,6 +112,9 @@ class JQuantsV2:
                 adjusted=Decimal(str(row['AdjC'])) if row.get('AdjC') is not None else None
                 if not close.is_finite() or not Decimal('1e-18')<=close<=Decimal('1e18') or close.as_tuple().exponent < -18: raise ValueError()
                 if adjusted is not None and (not adjusted.is_finite() or not Decimal('1e-18')<=adjusted<=Decimal('1e18') or adjusted.as_tuple().exponent < -18): raise ValueError()
+                volume=Decimal(str(row['Vo'])) if row.get('Vo') is not None else None
+                if volume is not None and (not volume.is_finite() or volume<0 or volume>Decimal('1e18')): raise ValueError()
+                volumes[day]=volume
                 normalized.append((day,close,adjusted))
         except (ValueError,TypeError,KeyError,ArithmeticError):
             raise MarketDataError('invalid_response') from None
@@ -116,7 +122,7 @@ class JQuantsV2:
         normalized.sort()
         last=normalized[-1]
         output={'as_of':str(last[0]),'source':'J-Quants API V2 /equities/bars/daily','delayed':self.free_plan,
-            'price':{'price':str(last[1]),'fx':'1','price_unit':'1'},'history':[{'date':str(d),'close':str(c),'adjusted_close':str(a) if a is not None else None} for d,c,a in normalized],'risk':None}
+            'price':{'price':str(last[1]),'fx':'1','price_unit':'1'},'history':[{'date':str(d),'close':str(c),'adjusted_close':str(a) if a is not None else None,'volume':str(volumes[d]) if volumes[d] is not None else None} for d,c,a in normalized],'risk':None}
         if len(normalized)>=61 and all(r[2] is not None for r in normalized):
             prices=[r[2] for r in normalized]
             with localcontext() as ctx:

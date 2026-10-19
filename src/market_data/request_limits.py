@@ -2,6 +2,7 @@
 import hashlib
 import threading
 import time
+import math
 from collections import deque
 from src.market_data.base import MarketDataError
 
@@ -21,15 +22,30 @@ class RequestBudget:
                 if state['blocked']<=now and (not state['times'] or now-state['times'][-1]>=self.window): self.states.pop(old)
             state=self.states.setdefault(ident,{'times':deque(),'blocked':0})
             while state['times'] and now-state['times'][0]>=self.window: state['times'].popleft()
-            if now<state['blocked'] or len(state['times'])>=self.limit: raise MarketDataError('rate_limit')
+            if now<state['blocked'] or len(state['times'])>=self.limit:
+                error=MarketDataError('rate_limit')
+                error.retry_after=max(1,math.ceil(max(state['blocked']-now,self.window-(now-state['times'][0]) if len(state['times'])>=self.limit else 0)))
+                raise error
             state['times'].append(now)
 
     def defer(self,key,seconds=60):
         try: seconds=max(60,min(3600,int(seconds)))
-        except (ValueError,TypeError): seconds=60
+        except (ValueError,TypeError):
+            from email.utils import parsedate_to_datetime
+            from datetime import datetime,timezone
+            try: seconds=max(60,min(3600,math.ceil((parsedate_to_datetime(seconds)-datetime.now(timezone.utc)).total_seconds())))
+            except (ValueError,TypeError,OverflowError): seconds=60
         with self.lock:
             state=self.states.setdefault(self._identity(key),{'times':deque(),'blocked':0})
             state['blocked']=max(state['blocked'],self.clock()+seconds)
+
+    def wait_seconds(self,key):
+        with self.lock:
+            state=self.states.get(self._identity(key))
+            if not state: return 0
+            now=self.clock()
+            rate=self.window-(now-state['times'][0]) if len(state['times'])>=self.limit else 0
+            return max(0,math.ceil(max(state['blocked']-now,rate)))
 
 
 BUDGET=RequestBudget()

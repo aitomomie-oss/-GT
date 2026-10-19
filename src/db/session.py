@@ -52,6 +52,14 @@ def connect(path):
             if existing and not added and not backup.exists():
                 with closing(sqlite3.connect(str(backup))) as target:
                     probe.backup(target)
+    if path.exists():
+        with closing(sqlite3.connect(str(path))) as probe:
+            existing=probe.execute("SELECT 1 FROM sqlite_master WHERE name='accounts'").fetchone()
+            added=probe.execute("SELECT 1 FROM sqlite_master WHERE name='ranking_jobs'").fetchone()
+            backup=path.with_name(path.name+'.pre-ranking-v2.bak')
+            if existing and not added and not backup.exists():
+                with closing(sqlite3.connect(str(backup))) as target:
+                    probe.backup(target)
     engine = create_engine(URL.create('sqlite', database=str(path)))
     try:
         metadata.create_all(engine)

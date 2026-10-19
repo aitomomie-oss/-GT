@@ -50,13 +50,32 @@ def _usable(row):
     return age<=(0 if row['kind']=='halts' else 31) and datetime.now(timezone.utc)-datetime.fromisoformat(row['fetched_at'])<timedelta(minutes=ttl)
 
 
-def lookup(db,code='',name='',isin=''):
+def snapshot(db):
+    rows=sources(db)
+    for row in rows:
+        data=json.loads(row['payload_json']);row['_payload']=data
+        indexes={'code':{},'name':{},'isin':{}}
+        for record in data.get('records',[]):
+            for key in indexes:
+                value=record.get(key,'')
+                if not value: continue
+                value=code_key(value,'日本株','JPY') if key=='code' else norm(value)
+                indexes[key].setdefault(value,[]).append(record)
+        row['_indexes']=indexes
+    return rows
+
+
+def lookup(db,code='',name='',isin='',prepared=None):
     result=dict(halt='未確認',nisa='不明',evidence=[],warnings=[])
     nisa=set()
-    for row in sources(db):
-        data=json.loads(row['payload_json'])
+    for row in (snapshot(db) if prepared is None else prepared):
+        data=row['_payload']
         matches=[]
-        for record in data.get('records',[]):
+        indexes=row['_indexes'];pool=[];seen=set()
+        for key,value in [('code',code_key(code,'日本株','JPY')),('name',norm(name)),('isin',norm(isin))]:
+            for record in indexes[key].get(value,[]):
+                if id(record) not in seen: pool.append(record);seen.add(id(record))
+        for record in pool:
             same_code=bool(code and record.get('code')) and code_key(code,'日本株','JPY')==code_key(record['code'],'日本株','JPY')
             same_isin=bool(isin and record.get('isin')) and isin.upper()==record['isin']
             same_name=bool(name and record.get('name')) and norm(name)==norm(record['name'])

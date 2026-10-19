@@ -122,3 +122,11 @@ official_sources = Table('official_sources',metadata,
     Column('id',Text,primary_key=True),Column('kind',Text,nullable=False),Column('url',Text,nullable=False),
     Column('attempted_at',Text),Column('fetched_at',Text),Column('as_of',Text),Column('status',Text,nullable=False),
     Column('payload_json',Text,nullable=False),Column('error_code',Text))
+ranking_jobs = Table('ranking_jobs',metadata,
+    Column('key',Text,primary_key=True),Column('kind',Text,nullable=False),Column('code',Text,nullable=False),
+    Column('state',Text,nullable=False),Column('attempts',Integer,nullable=False,server_default='0'),
+    Column('next_at',Text,nullable=False),Column('lease_until',Text),Column('lease_token',Text),
+    Column('last_success',Text),Column('error_code',Text),Column('updated_at',Text,nullable=False))
+ranking_trade_rules = Table('ranking_trade_rules',metadata,
+    Column('code',Text,primary_key=True),Column('mode',Text,primary_key=True),Column('fee_jpy',Text,nullable=False),
+    Column('spread_pct',Text,nullable=False),Column('as_of',Text,nullable=False),Column('source',Text,nullable=False))
