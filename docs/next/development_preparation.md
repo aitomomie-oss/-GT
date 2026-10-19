@@ -104,11 +104,11 @@ App start / migration / API: NOT RUN
 
 ```powershell
 $assetDev = Join-Path $env:USERPROFILE 'MY_AI_ASSET_Development\MY_AI_ASSET_NEXT_dev_20261020_071809_276252_6e01f286'
+$assetDevPython = Join-Path $assetDev '.venv\Scripts\python.exe'
 py -3.12 -m venv (Join-Path $assetDev '.venv')
-& (Join-Path $assetDev '.venv\Scripts\python.exe') -m pip install -r (Join-Path $assetDev 'requirements.txt')
-& (Join-Path $assetDev '.venv\Scripts\python.exe') -m pip check
+if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $assetDevPython)) { & $assetDevPython -m pip install -r (Join-Path $assetDev 'requirements.txt'); if ($LASTEXITCODE -eq 0) { & $assetDevPython -m pip check } else { Write-Output 'INSTALL_FAILED' } } else { Write-Output 'VENV_FAILED' }
 ```
 
-最後の `No broken requirements found.` はパッケージ依存の整合性の確認です。アプリ・DBの正常動作やAPI認証の検証とは別です。エラーが出た場合は起動や移行へ進めません。現時点で、このWindowsの環境導入結果はまだ受領していません。
+インストールが成功した場合だけpip checkへ進みます。`VENV_FAILED` / `INSTALL_FAILED` は成功と扱いません。最後の `No broken requirements found.` はパッケージ依存の整合性の確認です。アプリ・DBの正常動作やAPI認証の検証とは別です。エラーが出た場合は起動や移行へ進めません。現時点で、このWindowsの環境導入結果はまだ受領していません。
 
 環境が揃った後、専用の開発用起動.batで旧版の基準動作を確認します。既存の起動.batではなく開発用を使うことで、開発DBの絶対パス・背景API更新無効・localhost:8505を維持します。評価履歴機能を追加する場合は、その前に開発DBも保全してから既知の差分を適用します。元アプリの置換や本番DBの移行は行いません。
