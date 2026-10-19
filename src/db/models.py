@@ -84,3 +84,18 @@ transaction_aliases = Table('transaction_aliases',metadata,
 batch_events = Table('batch_events',metadata,
     Column('id',Integer,primary_key=True),Column('batch_id',ForeignKey('import_batches.id'),nullable=False),
     Column('changed_at',Text,nullable=False),Column('action',Text,nullable=False))
+# Research catalog is deliberately separate from portfolio instruments/positions.
+research_candidates = Table('research_candidates',metadata,
+    Column('id',Integer,primary_key=True),Column('code',Text,nullable=False),Column('name',Text,nullable=False),
+    Column('asset_type',Text,nullable=False),Column('currency',Text,nullable=False),Column('is_sample',Integer,nullable=False,server_default='0'),
+    Column('created_at',Text,nullable=False),Column('updated_at',Text,nullable=False),
+    UniqueConstraint('code','asset_type','currency'))
+research_observations = Table('research_observations',metadata,
+    Column('id',Integer,primary_key=True),Column('candidate_id',ForeignKey('research_candidates.id',ondelete='CASCADE'),nullable=False),
+    Column('dataset',Text,nullable=False),Column('payload_json',Text,nullable=False),Column('as_of',Text),Column('source',Text,nullable=False),
+    Column('fetched_at',Text,nullable=False),Column('delayed',Integer,nullable=False,server_default='0'),
+    Column('status',Text,nullable=False),Column('error_code',Text))
+Index('ix_research_observations_latest',research_observations.c.candidate_id,research_observations.c.dataset,research_observations.c.id)
+research_watchlist = Table('research_watchlist',metadata,
+    Column('candidate_id',ForeignKey('research_candidates.id',ondelete='CASCADE'),primary_key=True),
+    Column('note',Text,nullable=False,server_default=''),Column('priority',Text,nullable=False,server_default='通常'),Column('updated_at',Text,nullable=False))

@@ -1,7 +1,7 @@
 from src.db.models import BROKERS, ACCOUNTS, ASSETS, FIELDS
 from src.db.session import connect
 from src.services.portfolio import validate, add_holding, holdings, update_valuation, update_holding, save_snapshot, snapshots, delete_holding, account_balances, set_account_balances, totals
-from src.services.budget import add_contribution, monthly, target, set_target
+from src.services.budget import add_contribution, monthly, target, set_target, delete_contribution
 from src.services.analysis import advice
 from src.services.simulation import simulate
 from src.importers.generic_csv import import_csv, export_csv

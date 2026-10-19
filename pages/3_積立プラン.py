@@ -1,3 +1,4 @@
+from src.ui_discovery import render_plans
 from src.ui import c, st, pd, date, table, run_screen, money
 
 
@@ -36,11 +37,12 @@ def render(db, rows, total, cost):
     table(records)
     if records:
         ident=st.selectbox('削除する積立実績ID',[r['id'] for r in records])
+        st.caption('予定と紐付いた実績を削除すると予定を未実施へ戻し、残予算の予約を維持します。')
         checked=st.checkbox('積立実績の削除を確認しました')
         if st.button('積立実績を削除',disabled=not checked):
-            with db:
-                db.execute('DELETE FROM contributions WHERE id=?',(ident,))
+            c.delete_contribution(db,ident)
             st.rerun()
 
+    render_plans(db,month)
 
 run_screen(render)

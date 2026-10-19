@@ -22,3 +22,11 @@ SQLAlchemy MetaDataでaccounts/instruments/positions/quotes/fx_rates/budgetsほ�
 
 
 Phase 2移行ではtransactions/import_batchesへの追加列と新規テーブルを作る。既存Phase 1 DBには.pre-phase2.bakを作り、既存残高を変更しない。詳細はphase2_imports.md。
+
+
+## 候補探索の分離
+
+research_candidates / research_observations / research_watchlistは保有資産への外部キーを持ちません。候補評価はdiscovery.py、データ検証/履歴はresearch_data.py、取得先別処理はmarket_data/です。research-v1の明示式で採点し、欠損等は保留。
+追加前に.pre-discovery.bakを保存。savings_plansにはlabel/contribution_idを追加し、未実施予約を差し引きます。完了実績を削除する場合は予定を未実施へ戻す原子的操作で外部キーと予算予約を維持します。
+API取得と手入力更新は画面の再計算前に処理するため、失敗直後に古い点数を表示し続けません。候補銘柄一覧からの基本情報も元の出典/基準日/取得時刻を保存します。
+詳細はdiscovery.md、discovery_scoring.md、jquants_v2.md。

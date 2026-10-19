@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from sqlalchemy import create_engine, URL
 from src.db.models import metadata
@@ -9,22 +10,31 @@ def connect(path):
     path.parent.mkdir(parents=True, exist_ok=True)
     # Preserve all old information before first migration, including unknown tables.
     if path.exists():
-        with sqlite3.connect(str(path)) as probe:
+        with closing(sqlite3.connect(str(path))) as probe:
             legacy = probe.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='holdings'").fetchone()
             migrated = probe.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='positions'").fetchone()
             if legacy and not migrated:
                 backup = path.with_name(path.name + '.pre-phase1.bak')
                 if backup.exists():
                     raise ValueError('移行前バックアップが既にあります。DBを確認してから再開してください。')
-                with sqlite3.connect(str(backup)) as target:
+                with closing(sqlite3.connect(str(backup))) as target:
                     probe.backup(target)
     if path.exists():
-        with sqlite3.connect(str(path)) as probe:
+        with closing(sqlite3.connect(str(path))) as probe:
             existing={r[1] for r in probe.execute('PRAGMA table_info(transactions)')}
             if existing and 'batch_id' not in existing:
                 backup=path.with_name(path.name+'.pre-phase2.bak')
                 if not backup.exists():
-                    with sqlite3.connect(str(backup)) as target:
+                    with closing(sqlite3.connect(str(backup))) as target:
+                        probe.backup(target)
+    if path.exists():
+        with closing(sqlite3.connect(str(path))) as probe:
+            exists=probe.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='accounts'").fetchone()
+            research=probe.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='research_candidates'").fetchone()
+            if exists and not research:
+                backup=path.with_name(path.name+'.pre-discovery.bak')
+                if not backup.exists():
+                    with closing(sqlite3.connect(str(backup))) as target:
                         probe.backup(target)
     engine = create_engine(URL.create('sqlite', database=str(path)))
     try:
@@ -38,6 +48,7 @@ def connect(path):
         upgrades={
             'transactions':{'batch_id':'INTEGER REFERENCES import_batches(id)','fingerprint':'TEXT','fx':'TEXT','fx_as_of':'TEXT',
                 'price_unit':"TEXT NOT NULL DEFAULT '1'",'is_savings':'INTEGER NOT NULL DEFAULT 0','status':"TEXT NOT NULL DEFAULT 'active'"},
+            'savings_plans':{'label':'TEXT','contribution_id':'INTEGER REFERENCES contributions(id)'},
             'import_batches':{'registered_at':'TEXT','source':'TEXT','duplicate_count':'INTEGER NOT NULL DEFAULT 0','errors_json':'TEXT'},
         }
         with db:
