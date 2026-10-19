@@ -1,0 +1,11 @@
+{
+  "notice": "架空CSV専用。SBI証券の実フォーマットではありません",
+  "mapping": {
+    "executed_at": "架空約定日", "name": "架空銘柄", "code": "架空コード",
+    "kind": "架空売買", "quantity": "架空数量", "price": "架空単価",
+    "fee": "架空手数料", "tax": "架空税額", "account": "架空口座", "external_id": "架空取引ID"
+  },
+  "defaults": {"asset_type": "日本株", "currency": "JPY"},
+  "value_maps": {"kind": {"買付": "buy", "売却": "sell"}},
+  "date_format": "%Y-%m-%d"
+}

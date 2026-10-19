@@ -1,0 +1,7 @@
+streamlit==1.55.0
+pandas==2.3.3
+SQLAlchemy==2.0.44
+plotly==6.5.0
+pydantic==2.12.5
+pytest==8.4.2
+pypdf==6.4.0
