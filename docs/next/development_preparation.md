@@ -109,6 +109,20 @@ py -3.12 -m venv (Join-Path $assetDev '.venv')
 if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $assetDevPython)) { & $assetDevPython -m pip install -r (Join-Path $assetDev 'requirements.txt'); if ($LASTEXITCODE -eq 0) { & $assetDevPython -m pip check } else { Write-Output 'INSTALL_FAILED' } } else { Write-Output 'VENV_FAILED' }
 ```
 
-インストールが成功した場合だけpip checkへ進みます。`VENV_FAILED` / `INSTALL_FAILED` は成功と扱いません。最後の `No broken requirements found.` はパッケージ依存の整合性の確認です。アプリ・DBの正常動作やAPI認証の検証とは別です。エラーが出た場合は起動や移行へ進めません。現時点で、このWindowsの環境導入結果はまだ受領していません。
+インストールが成功した場合だけpip checkへ進みます。`VENV_FAILED` / `INSTALL_FAILED` は成功と扱いません。最後の `No broken requirements found.` はパッケージ依存の整合性の確認です。アプリ・DBの正常動作やAPI認証の検証とは別です。エラーが出た場合は起動や移行へ進めません。
+
+ユーザーから `No broken requirements found.` の実行結果を受領しました。併記されたpipの更新通知は失敗ではなく、pip自体の更新をこの作業に追加しません。開発コピーの.venv作成と依存導入を成功として記録します。Windowsでアプリ本体の起動はこの時点では未確認です。
 
 環境が揃った後、専用の開発用起動.batで旧版の基準動作を確認します。既存の起動.batではなく開発用を使うことで、開発DBの絶対パス・背景API更新無効・localhost:8505を維持します。評価履歴機能を追加する場合は、その前に開発DBも保全してから既知の差分を適用します。元アプリの置換や本番DBの移行は行いません。
+
+## 次の動作確認：開発コピーを起動する
+
+PowerShellの現在の場所に依存しないよう、確認済みの開発用バッチを絶対パスで指定します。
+
+```powershell
+& (Join-Path $env:USERPROFILE 'MY_AI_ASSET_Development\MY_AI_ASSET_NEXT_dev_20261020_071809_276252_6e01f286\開発用起動.bat')
+```
+
+起動中はそのPowerShellを開いたままにして、ブラウザーで `http://127.0.0.1:8505` を開きます。ホームの保存済み資産と積立プランが表示されるかを確認します。明細・口座情報・APIキーをチャットへ送る必要はありません。
+
+この起動は開発コピーの旧版0df3477を使い、評価履歴の2テーブルを追加する版へは更新しません。背景API取得は無効、プロジェクトの秘密設定は未コピーの状態です。旧版の接続初期化は開発DBに対して実行されますが、元アプリとバックアップには接続しません。ユーザーによる起動結果と画面表示の確認はまだ受領していません。
