@@ -38,7 +38,8 @@ def transport(path,params,key):
 
 class JQuantsV2:
     def __init__(self,key=None,request=None,free_plan=True):
-        self.key=key if key is not None else os.environ.get('JQUANTS_API_KEY','')
+        from src.market_data.credentials import jquants_key
+        self.key=key if key is not None else jquants_key()
         self.request=request or transport
         self.free_plan=free_plan
 
@@ -78,7 +79,7 @@ class JQuantsV2:
                 code=self._code(row['Code'])
                 name=str(row['CoName']).strip()
                 if day>today_jst() or not name: raise ValueError()
-                result.append(dict(code=code,name=name,as_of=str(day),source='J-Quants API V2 /equities/master',delayed=self.free_plan,fetched_at=datetime.now(timezone.utc).isoformat()))
+                result.append(dict(sector=str(row.get('S33Nm') or ''),market=str(row.get('MktNm') or ''),market_code=str(row.get('Mkt') or ''),sector_code=str(row.get('S33') or ''),code=code,name=name,as_of=str(day),source='J-Quants API V2 /equities/master',delayed=self.free_plan,fetched_at=datetime.now(timezone.utc).isoformat()))
             except (ValueError,TypeError,KeyError):
                 raise MarketDataError('invalid_response') from None
         return result
@@ -113,7 +114,7 @@ class JQuantsV2:
         normalized.sort()
         last=normalized[-1]
         output={'as_of':str(last[0]),'source':'J-Quants API V2 /equities/bars/daily','delayed':self.free_plan,
-            'price':{'price':str(last[1]),'fx':'1','price_unit':'1'},'risk':None}
+            'price':{'price':str(last[1]),'fx':'1','price_unit':'1'},'history':[{'date':str(d),'close':str(c),'adjusted_close':str(a) if a is not None else None} for d,c,a in normalized],'risk':None}
         if len(normalized)>=61 and all(r[2] is not None for r in normalized):
             prices=[r[2] for r in normalized]
             with localcontext() as ctx:

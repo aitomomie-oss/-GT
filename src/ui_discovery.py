@@ -116,9 +116,10 @@ def data_form(db,item):
 
 def api_form(db,item):
     with st.expander('日本株データ取得：J-Quants API V2'):
-        st.caption('公式V2の銘柄情報/日足アダプター。財務・PER/PBR・NISA適格性の自動取得は未実装です。入力が不足する銘柄は評価保留になります。')
-        present=bool(os.environ.get('JQUANTS_API_KEY'))
-        st.write('APIキー: 設定済み' if present else 'APIキー: 未設定（Windowsの環境変数JQUANTS_API_KEYで設定）')
+        st.caption('この個別更新は価格・リスクを取得します。財務・PER/PBRは上部の自動探索から取得できます。NISA適格性は公式資料での確認が必要です。')
+        from src.market_data.credentials import jquants_key
+        present=bool(jquants_key())
+        st.write('APIキー: 設定済み' if present else 'APIキー: 未設定（.streamlit/secrets.toml のJQUANTS_API_KEYで設定）')
         free=st.checkbox('無料/遅延プランを利用',value=True,key='research_free_'+str(item['id']))
         end=today_jst()-timedelta(days=84) if free else today_jst()
         to_day=st.date_input('取得終了日',value=end,max_value=today_jst(),key='research_api_end_'+str(item['id']))
@@ -218,6 +219,8 @@ def detail(db,result):
 def render(db):
     process_pending(db)
     st.header('AI銘柄探索')
+    from src.ui_auto_discovery import render_auto
+    render_auto(db)
     st.info('未購入候補の調査専用です。スコアは説明可能なルール評価であり、値上がり確率・将来価格・売買の指示ではありません。候補は総資産へ加算しません。')
     st.caption('比較基準: '+ds.BASELINE_NAME+'（利用者指定）。SBI NISAを主な検討口座とし、PayPayは比較用として既存データを保持します。')
     candidate_form(db)

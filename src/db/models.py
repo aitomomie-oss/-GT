@@ -99,3 +99,21 @@ Index('ix_research_observations_latest',research_observations.c.candidate_id,res
 research_watchlist = Table('research_watchlist',metadata,
     Column('candidate_id',ForeignKey('research_candidates.id',ondelete='CASCADE'),primary_key=True),
     Column('note',Text,nullable=False,server_default=''),Column('priority',Text,nullable=False,server_default='通常'),Column('updated_at',Text,nullable=False))
+
+# Independent automatic exploration cache. No portfolio records are mutated.
+auto_universe = Table('auto_universe',metadata,
+    Column('code',Text,primary_key=True),Column('payload_json',Text,nullable=False),
+    Column('as_of',Text,nullable=False),Column('fetched_at',Text,nullable=False),
+    Column('state',Text,nullable=False),Column('kind',Text,nullable=False))
+auto_prices = Table('auto_prices',metadata,
+    Column('code',Text,primary_key=True),Column('payload_json',Text,nullable=False),
+    Column('fetched_at',Text,nullable=False),Column('attempted_at',Text,nullable=False),
+    Column('status',Text,nullable=False),Column('error_code',Text))
+auto_financials = Table('auto_financials',metadata,
+    Column('code',Text,primary_key=True),Column('payload_json',Text,nullable=False),
+    Column('fetched_at',Text,nullable=False),Column('attempted_at',Text,nullable=False),
+    Column('status',Text,nullable=False),Column('error_code',Text))
+auto_purchase_terms = Table('auto_purchase_terms',metadata,
+    Column('code',Text,primary_key=True),Column('payload_json',Text,nullable=False),Column('updated_at',Text,nullable=False))
+auto_nisa_balances = Table('auto_nisa_balances',metadata,
+    Column('year',Integer,primary_key=True),Column('payload_json',Text,nullable=False),Column('updated_at',Text,nullable=False))
