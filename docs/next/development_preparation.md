@@ -7,7 +7,7 @@
 - 作業ブランチ：`prep/my-ai-asset-next`。調査済みブランチとmainを変更せずに分離。
 - Windowsの入力：成功確認済みのバックアップ `MY_AI_ASSET_NEXT_20261020_010301_138083_bca72dcf`。
 - 元アプリ・バックアップは参照だけ。読み取るためにアプリを起動・インポートしません。
-- 開発コピーはWindowsユーザーフォルダー内の別の場所へ作成。DBの移行、依存ライブラリの導入、アプリ起動、API呼出しは実行しません。
+- 開発コピーはWindowsユーザーフォルダー内の別の場所へ作成。このコピー作成処理ではDBの移行、依存ライブラリの導入、アプリ起動、API呼出しは実行しません。作成結果を確認した後、開発コピー専用のPython環境を準備します。
 
 ## クラウドで確認した版の差分
 
@@ -20,7 +20,7 @@
 | 接続初期化後の既知テーブル数 | 31 | 33 |
 | 評価履歴 | 未追加 | evaluation_snapshots / data_verifications |
 
-Git全体の差分は11ファイル（README、説明書を含む）。補助ツールの参照対象では、新しい4ファイルが未存在、既存6ファイルが変更となる想定です。説明書は版判定のコード参照対象から除外しています。実際のWindowsの差分は実行結果を待ちます。
+Git全体の差分は11ファイル（README、説明書を含む）。補助ツールの参照対象では、新しい4ファイルが未存在、既存6ファイルが変更となります。説明書は版判定のコード参照対象から除外しています。Windowsの実行結果でもこの差分に一致しました。
 
 主な変更は、app.pyへの画面追加、モデルの2テーブル/索引追加、移行前バックアップ、ホームからの評価記録、専用UI・サービス・テストです。保有資産・予算・台帳の既存計算コードはこの2コミット間で変更されていません。
 
@@ -66,7 +66,28 @@ Review status: ready_for_review またはrequires_investigation
 App start / migration / API: NOT RUN
 ```
 
-`DEVELOPMENT_COPY_OK` はコピー保全が成功した意味です。`requires_investigation` なら未知の情報を残したまま次の調査へ進みます。`ready_for_review` も本番への更新許可や移行成功を意味しません。結果のテキストだけを共有し、DBや秘密設定をアップロードしません。Windowsでの実行は現時点で確認待ちです。
+`DEVELOPMENT_COPY_OK` はコピー保全が成功した意味です。`requires_investigation` なら未知の情報を残したまま次の調査へ進みます。`ready_for_review` も本番への更新許可や移行成功を意味しません。結果のテキストだけを共有し、DBや秘密設定をアップロードしません。
+
+## Windowsで受領した実行結果
+
+2026年10月20日、ユーザーから以下を受領しました。クラウドからPCを直接検査した結果とは区別します。
+
+```text
+DEVELOPMENT_COPY_OK
+Folder: %USERPROFILE%\MY_AI_ASSET_Development\MY_AI_ASSET_NEXT_dev_20261020_071809_276252_6e01f286
+Source code reference: 0df3477
+DB structure reference: 0df3477
+Tables: 31
+Evaluation history tables: 0 / 2
+Latest reference differences: 4 missing / 6 changed
+Copied database verified: OK
+Review status: ready_for_review
+App start / migration / API: NOT RUN
+```
+
+バックアップに保存された参照対象87ファイルがUI改善版0df3477に一致し、DBの既知31テーブルの列・外部キー・一意索引も同版と一致しました。追加調査を要求する未知テーブル/ビュー/トリガーは検出されていません。評価履歴の2テーブルはありません。コードとDBのコピーは成功していますが、Windowsでアプリ本体を起動・移行したことは意味しません。
+
+この開発コピーはバックアップ時点のデータです。元アプリに後から追加されたデータを自動統合するものではありません。元アプリとバックアップの保存先・内容を変更せずに、以後は上記の開発コピーで動作確認を進めます。
 
 ## 検証結果
 
@@ -77,6 +98,17 @@ App start / migration / API: NOT RUN
 
 計22件はLinux / Python 3.12の架空データでの補助ツール・互換性の検証です。ユーザーの実DBへこの移行試験を行ったわけではありません。既存アプリの236件とは別の検証で、Windowsの起動・移行・API通信の成功を示すものではありません。
 
-## 実行結果を受けて次に決めること
+## 次の段階：開発コピー専用のPython環境
 
-Windowsの実コードとDB構造が判明した後、開発コピーへ評価履歴機能を追加する必要があるか、未知の旧テーブルや独自変更をどう保全するかを決めます。開発環境の依存導入・コピーDBでの移行・起動確認はその後です。元アプリを置き換えたり、NEXTの判断記録機能を先に追加したりしません。
+コードとDB構造を確認できたため、次は開発コピーの中だけにPython 3.12の.venvを作り、同コピーのrequirements.txtから依存関係を導入します。PowerShellの現在位置がSystem32でも、以下は明示した開発コピーの絶対パスだけを使用します。仮想環境の有効化、実行ポリシーの変更、管理者権限は不要です。
+
+```powershell
+$assetDev = Join-Path $env:USERPROFILE 'MY_AI_ASSET_Development\MY_AI_ASSET_NEXT_dev_20261020_071809_276252_6e01f286'
+py -3.12 -m venv (Join-Path $assetDev '.venv')
+& (Join-Path $assetDev '.venv\Scripts\python.exe') -m pip install -r (Join-Path $assetDev 'requirements.txt')
+& (Join-Path $assetDev '.venv\Scripts\python.exe') -m pip check
+```
+
+最後の `No broken requirements found.` はパッケージ依存の整合性の確認です。アプリ・DBの正常動作やAPI認証の検証とは別です。エラーが出た場合は起動や移行へ進めません。現時点で、このWindowsの環境導入結果はまだ受領していません。
+
+環境が揃った後、専用の開発用起動.batで旧版の基準動作を確認します。既存の起動.batではなく開発用を使うことで、開発DBの絶対パス・背景API更新無効・localhost:8505を維持します。評価履歴機能を追加する場合は、その前に開発DBも保全してから既知の差分を適用します。元アプリの置換や本番DBの移行は行いません。
