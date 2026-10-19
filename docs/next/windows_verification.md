@@ -97,3 +97,16 @@ py -3.12 .\backup_windows.py --app (Join-Path $env:USERPROFILE 'Downloads\-GT-ma
 ```
 
 成功時は `BACKUP_OK`、`Folder:` に保存先、`Database / settings / code / restore check: OK` と表示されます。結果の文字だけを教えてもらい、DBや秘密設定をアップロードしてもらうことはありません。`BACKUP_NOT_COMPLETED` の場合は成功扱いにせず、その区分を確認します。元データと途中の回復用ファイルを削除しません。
+
+### 今回受領した結果
+
+2026年10月20日、ユーザーから以下を受領しました。
+
+```text
+BACKUP_OK
+Folder: %USERPROFILE%\MY_AI_ASSET_Backups\MY_AI_ASSET_NEXT_20261020_010301_138083_bca72dcf
+Database / settings / code / restore check: OK
+Project key readable (not API authentication): YES
+```
+
+これで今回の指定フォルダーのコード・DB・設定の保全と、別ファイルへのDB復元検証を確認できました。API認証、旧版とのデータ統合、全コードの版の一致は確認していません。この手順からアプリを更新・再起動せず、調査結果を報告して今回の範囲を区切ります。
