@@ -3,7 +3,6 @@
 Only market code/date ranges leave the app. Keys are never persisted/logged.
 """
 import json
-import os
 import re
 from datetime import date,datetime,timezone
 from decimal import Decimal, localcontext
@@ -22,13 +21,16 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 def transport(path,params,key):
-    request=Request(BASE+path+'?'+urlencode(params),headers={'x-api-key':key,'Accept':'application/json'})
+    from src.market_data.request_limits import BUDGET
+    BUDGET.acquire(key)
     try:
+        request=Request(BASE+path+'?'+urlencode(params),headers={'x-api-key':key,'Accept':'application/json'})
         with build_opener(NoRedirect()).open(request,timeout=20) as response:
             raw=response.read(5*1024*1024+1)
             if len(raw)>5*1024*1024: raise MarketDataError('invalid_response')
             return json.loads(raw)
     except HTTPError as e:
+        if e.code==429: BUDGET.defer(key,e.headers.get('Retry-After','60') if e.headers else 60)
         raise MarketDataError({401:'unauthorized',403:'forbidden',429:'rate_limit'}.get(e.code,'network')) from None
     except (URLError,TimeoutError,OSError):
         raise MarketDataError('network') from None
@@ -38,8 +40,8 @@ def transport(path,params,key):
 
 class JQuantsV2:
     def __init__(self,key=None,request=None,free_plan=True):
-        from src.market_data.credentials import jquants_key
-        self.key=key if key is not None else jquants_key()
+        from src.market_data.credentials import jquants_key,_validate
+        self.key=_validate(key)[0] if key is not None else jquants_key()
         self.request=request or transport
         self.free_plan=free_plan
 

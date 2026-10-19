@@ -138,9 +138,11 @@ def master_search(db):
         if st.button('公式銘柄一覧を取得',key='research_master_fetch'):
             try:
                 st.session_state['research_master_results']=JQuantsV2().search(code,day)
-            except (MarketDataError,ValueError):
-                st.session_state.pop('research_master_results',None)
-                st.warning('銘柄一覧を更新できません。APIキー・契約権限・対象日を確認してください。')
+            except MarketDataError as exc:
+                from src.ui_credentials import show_error
+                show_error(exc)
+            except ValueError:
+                st.warning('銘柄コード・対象日を確認してください。')
         rows=st.session_state.get('research_master_results',[])
         query=st.text_input('取得済み一覧のコード/名称検索',key='research_master_filter')
         filtered=[r for r in rows if query.casefold() in (r['code']+' '+r['name']).casefold()]

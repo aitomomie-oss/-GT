@@ -12,6 +12,8 @@ from src.utils.decimal_utils import today_jst
 
 def render_auto(db):
     with st.expander('日本株の自動探索（J-Quants V2）',expanded=False):
+        from src.ui_credentials import render as render_credentials,show_error
+        render_credentials()
         from src.ui_discovery_budget import settings,detail_budget
         settings(db)
         from src.ui_official_sync import render as render_official
@@ -23,7 +25,7 @@ def render_auto(db):
                 result=auto.refresh_universe(db,JQuantsV2(),day)
                 st.success('24時間以内の保存済み一覧を使用します。' if result=='cached' else '銘柄一覧を保存しました。')
             except MarketDataError as exc:
-                st.warning('一覧の更新に失敗しました。保存済み一覧は参考情報として残します。状態: '+exc.code)
+                show_error(exc)
         rows=auto.universe(db)
         if not rows:
             st.info('一覧は未取得です。APIキーを設定して「銘柄一覧を取得・更新」を押してください。')
