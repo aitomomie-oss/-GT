@@ -39,11 +39,26 @@ Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -in $assetPids } | S
 
 `Format-List` はパスの省略表示を避けるために使います。プロセスのCommandLineや環境変数一覧は表示しません。照合できない場合は、旧版の停止や最新版の再起動を推測で行いません。
 
-現在は、入力を短くするため以下の1行で8501番の待受PIDとその親PIDを取得するよう依頼しています（結果待ち）。
+その後、入力を短くするため以下の1行で8501番の待受PIDとその親PIDを取得するよう依頼しました。結果は「一致するオブジェクトなし」でした。
 
 ```powershell
 Get-NetTCPConnection -LocalPort 8501 -State Listen | ForEach-Object { Get-CimInstance Win32_Process -Filter "ProcessId = $($_.OwningProcess)" } | Select-Object ProcessId, ParentProcessId, ExecutablePath | Format-List
 ```
+
+さらにPython全体の待受を照会した結果も出力なしでした。以前のPIDを現在も有効な値として再利用せず、調査のためのアプリ再起動も行っていません。現在は停止中または待受を確認できない状態として扱い、ファイルの静的照合へ進みます。
+
+2026年10月20日のユーザー取得結果では、対象フォルダーにapp.py、起動.bat、local_data/assets.db、プロジェクトのsecrets.tomlが存在しました。DBは4,050,944バイト。data/assets.dbは一覧に出ていません。存在するDBが実際に選択されることと、コードの版は別途確認します。
+
+### 次の読取確認：秘密を含まないコードのハッシュ
+
+以下はソースと起動バッチの照合だけです。secrets.tomlを読んだり、アプリを起動したり、DBへ接続したりしません。
+
+```powershell
+$assetApp = Join-Path $env:USERPROFILE 'Downloads\-GT-main (4)\MY_AI_ASSET_20261020_001535_154802'
+'app.py','起動.bat','src\ui.py','src\market_data\credentials.py' | ForEach-Object { Get-FileHash -LiteralPath (Join-Path $assetApp $_) -Algorithm SHA256 } | Select-Object Path, Hash | Format-List
+```
+
+起動バッチとDB選択関数が既知の版に一致したかを確認します。一致しても、過去に別の起動方法・環境変数指定で実行されていないかは別の確認事項として残します。
 
 ## 4. 実行中の画面で設定参照元を確認（次に行う確認）
 
