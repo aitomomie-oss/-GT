@@ -10,12 +10,16 @@ def archive(path,extra=None):
     with zipfile.ZipFile(path,'w') as z:
         for name in ('app.py','requirements.txt','src/db/session.py'):
             z.writestr('-GT-main/'+name,'# fictional release\n')
-        for name,value in (extra or {}).items(): z.writestr(name,value)
+        for name,value in (extra or {}).items():
+            # Keep malicious names verbatim even when Windows normalizes ZipInfo.
+            info=zipfile.ZipInfo(name)
+            info.filename=name
+            z.writestr(info,value)
     return path
 
 
 def original(tmp_path):
-    old=tmp_path/'old app';old.mkdir();(old/'app.py').write_text('original code')
+    old=tmp_path/'old app 日本語';old.mkdir();(old/'app.py').write_text('original code',encoding='utf-8')
     (old/'local_data').mkdir()
     db=old/'local_data/assets.db'
     with sqlite3.connect(db) as conn:
@@ -33,7 +37,7 @@ def test_prepare_preserves_old_and_copies_database_and_secret(tmp_path):
     for path in (release/'local_data/assets.db',backup/'assets.db'):
         with sqlite3.connect(path) as conn: assert conn.execute('SELECT * FROM private_assets').fetchone()[0]=='keep me'
     assert (release/'.streamlit/secrets.toml').read_bytes()==(old/'.streamlit/secrets.toml').read_bytes()
-    assert calls==[release] and json.loads((backup/'update.json').read_text())['state']=='ready'
+    assert calls==[release] and json.loads((backup/'update.json').read_text(encoding='utf-8'))['state']=='ready'
     assert 'set "MY_AI_ASSET_DB="' in (release/'起動.bat').read_text()
     # Independent copies: migrations or changes in the new DB do not touch the original.
     with sqlite3.connect(release/'local_data/assets.db') as conn: conn.execute('DELETE FROM private_assets')
@@ -47,13 +51,29 @@ def test_failed_install_keeps_recoverable_data(tmp_path):
     assert db.read_bytes()==before
     backup=next(tmp_path.glob('MY_AI_ASSET_backup_*'))
     assert (backup/'assets.db').is_file()
-    assert json.loads((backup/'update.json').read_text())['state']=='failed'
+    assert json.loads((backup/'update.json').read_text(encoding='utf-8'))['state']=='failed'
 
 @pytest.mark.parametrize('entry',['../escape','-GT-main/../../escape','-GT-main/C:/escape','-GT-main/local_data/assets.db','-GT-main/.streamlit/secrets.toml','-GT-main/evil\\escape'])
 def test_reject_unsafe_or_private_archive(tmp_path,entry):
     path=archive(tmp_path/'bad.zip',{entry:'bad'})
     with pytest.raises(ValueError): extract_release(path,tmp_path/'new')
     assert not (tmp_path/'escape').exists()
+
+
+def test_reject_original_backslash_after_windows_normalization(tmp_path,monkeypatch):
+    path=archive(tmp_path/'bad.zip',{'-GT-main/evil\\escape':'bad'})
+    with zipfile.ZipFile(path) as z:
+        assert z.infolist()[-1].orig_filename=='-GT-main/evil\\escape'
+    original=zipfile.ZipFile.infolist
+    def normalized_entries(self):
+        entries=original(self)
+        for entry in entries:
+            entry.filename=entry.filename.replace('\\','/')
+        return entries
+    monkeypatch.setattr(zipfile.ZipFile,'infolist',normalized_entries)
+    destination=tmp_path/'new'
+    with pytest.raises(ValueError): extract_release(path,destination)
+    assert not destination.exists()
 
 
 def test_wal_backup_captures_committed_changes(tmp_path):

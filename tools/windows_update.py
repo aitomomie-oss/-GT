@@ -42,8 +42,11 @@ def extract_release(archive,destination):
         if len(entries)>10000 or sum(i.file_size for i in entries)>MAX_EXPANDED: raise ValueError('ZIPが大きすぎます。')
         paths=[]
         for item in entries:
-            p=PurePosixPath(item.filename)
-            if p.is_absolute() or '..' in p.parts or '\\' in item.filename or ':' in item.filename or ((item.external_attr>>16)&0o170000)==0o120000:
+            # Windows zipfile can normalize backslashes before filename is read.
+            # Inspect the original archive name before trusting that normalization.
+            raw_name=item.orig_filename
+            p=PurePosixPath(raw_name)
+            if p.is_absolute() or '..' in p.parts or '\\' in raw_name or ':' in raw_name or '\x00' in raw_name or ((item.external_attr>>16)&0o170000)==0o120000:
                 raise ValueError('安全に展開できないZIPです。')
             if not p.parts: continue
             paths.append((item,p))
