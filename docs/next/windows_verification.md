@@ -58,9 +58,9 @@ $assetApp = Join-Path $env:USERPROFILE 'Downloads\-GT-main (4)\MY_AI_ASSET_20261
 'app.py','起動.bat','src\ui.py','src\market_data\credentials.py' | ForEach-Object { Get-FileHash -LiteralPath (Join-Path $assetApp $_) -Algorithm SHA256 } | Select-Object Path, Hash | Format-List
 ```
 
-起動バッチとDB選択関数が既知の版に一致したかを確認します。一致しても、過去に別の起動方法・環境変数指定で実行されていないかは別の確認事項として残します。
+ユーザー取得の4ハッシュを照合した結果、app.pyは0df3477、src/ui.pyとcredentials.pyは0df3477/0eaedc0、起動.batは更新ツールの生成物に一致しました。この起動バッチは自身のフォルダーへ移動し、MY_AI_ASSET_DBを解除して起動します。そのため、この方法で起動する場合のDBは確認済みのlocal_data/assets.dbです。過去に別の方法で起動したアプリが8501番へ接続していたかは別の確認事項として残します。
 
-## 4. 実行中の画面で設定参照元を確認（次に行う確認）
+## 4. 設定参照元の確認
 
 ブラウザーが対象版へ接続していることを確認してから、既存画面の以下を開きます。
 
@@ -72,9 +72,11 @@ $assetApp = Join-Path $env:USERPROFILE 'Downloads\-GT-main (4)\MY_AI_ASSET_20261
 
 ブラウザー側の版が古くこの診断がない場合、診断を出すためにアプリを更新しません。コード版の照合を先に行います。
 
-## 5. 起動バッチと実DBを特定（まだ未実施）
+現在のように待受が確認できない場合は、この診断のためにアプリを起動しません。下記のバックアップ専用ツールは、秘密の内容を表示せず、確認済みのcredentials.pyと同じプロジェクトTOMLの読込条件に合うかを真偽値で報告できます。YESでもAPI認証や過去の実読込の成功を証明するものではありません。
 
-対象の起動.batが作業フォルダーを設定し、`MY_AI_ASSET_DB` を空にする更新版テンプレートかを、キーを表示しない静的確認で調べます。ファイルに独自追記がある場合は別途調べます。起動バッチ全体を無条件にチャットへ出力する手順にはしません。
+## 5. 起動バッチと実DBを特定（ハッシュ照合済み）
+
+対象の起動.batは作業フォルダーを設定し、`MY_AI_ASSET_DB` を空にする更新版テンプレートとハッシュが一致しました。バッチ全体をチャットへ出力せずに確認しています。
 
 DBの候補は `local_data/assets.db` と `data/assets.db`、起動時に有効な `MY_AI_ASSET_DB` 指定です。選択規則は [調査報告](current_state.md) を参照。更新版バッチによる変数解除が確認できなければ、別PowerShellの環境変数だけで「指定なし」とは断定しません。
 
@@ -85,3 +87,13 @@ DBの候補は `local_data/assets.db` と `data/assets.db`、起動時に有効�
 実DBの絶対パス、実設定参照元、版が揃ってから [バックアップ基準](backup_verification.md) に従ってPC内へ保全します。クラウド側で確認済みのソースとWindowsの実DBを混同しません。
 
 最後に報告書の「未確認」を更新します。元DBを触らないコピー復元検証まで完了してから、NEXTの実装段階を別の作業として開始します。
+
+### バックアップ専用ツールの使い方
+
+[backup_windows.py](backup_windows.py) を単独ファイルとしてダウンロードし、Python 3.12で以下のように実行します。アプリのフォルダーへ上書き配置する必要はありません。チャットで案内する場合はスクリプトの固定コミットURLとSHA-256で取得内容を照合します。
+
+```powershell
+py -3.12 .\backup_windows.py --app (Join-Path $env:USERPROFILE 'Downloads\-GT-main (4)\MY_AI_ASSET_20261020_001535_154802')
+```
+
+成功時は `BACKUP_OK`、`Folder:` に保存先、`Database / settings / code / restore check: OK` と表示されます。結果の文字だけを教えてもらい、DBや秘密設定をアップロードしてもらうことはありません。`BACKUP_NOT_COMPLETED` の場合は成功扱いにせず、その区分を確認します。元データと途中の回復用ファイルを削除しません。
