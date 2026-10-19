@@ -117,3 +117,8 @@ auto_purchase_terms = Table('auto_purchase_terms',metadata,
     Column('code',Text,primary_key=True),Column('payload_json',Text,nullable=False),Column('updated_at',Text,nullable=False))
 auto_nisa_balances = Table('auto_nisa_balances',metadata,
     Column('year',Integer,primary_key=True),Column('payload_json',Text,nullable=False),Column('updated_at',Text,nullable=False))
+# Versioned official-list cache; a failed refresh never erases prior evidence.
+official_sources = Table('official_sources',metadata,
+    Column('id',Text,primary_key=True),Column('kind',Text,nullable=False),Column('url',Text,nullable=False),
+    Column('attempted_at',Text),Column('fetched_at',Text),Column('as_of',Text),Column('status',Text,nullable=False),
+    Column('payload_json',Text,nullable=False),Column('error_code',Text))

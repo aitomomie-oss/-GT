@@ -43,6 +43,7 @@ def detail_budget(db,result,mode):
     st.write('購入可能性',check['status'])
     st.write('必要購入金額（円・手数料等除く）',str(check['minimum']) if check['minimum'] is not None else '不明')
     st.write('購入前の確認事項',check['reasons'])
+    st.write('公式一覧の照合結果・出典',check['official'])
     old=b.load(db,'auto_purchase_terms','code',result['code'])
     with st.expander('公式資料に基づくNISA・SBI購入条件を登録'):
         st.caption('公式ページの記載を利用者が確認して転記する方式です。URLのドメインを検証しますが、ページ本文との自動照合は行いません。')

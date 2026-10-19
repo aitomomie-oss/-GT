@@ -173,6 +173,7 @@ def detail(db,result):
         for reason in result['reasons']: st.warning(reason)
     if result['components']:
         st.dataframe(pd.DataFrame(result['components']).rename(columns={'name':'評価項目','points':'点数','maximum':'配点','reason':'根拠'}).astype(str),hide_index=True,width='stretch')
+    st.write('公式取引停止・NISA照合と出典',result['official'])
     st.write('少額積立への条件: '+result['suitability'])
     st.write('既存保有との違い: '+result['overlap']['reason'])
     if result['overlap']['holdings']:

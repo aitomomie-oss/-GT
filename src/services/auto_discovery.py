@@ -118,6 +118,10 @@ def evaluate(db,row,context=None):
             if not vdate or (today_jst()-date.fromisoformat(vdate)).days>7 or financial_data.get('valuation_status')!='ok':
                 f.pop('per',None); f.pop('pbr',None)
             else: dates['PER・PBR']=vdate
+    dividend_calc=financial_data.get('dividend_calculation',{})
+    if financial_row and financial_row['status']=='ok' and 'dividend_yield_pct' not in f and dividend_calc.get('status')=='ok' and not dividend_calc.get('delayed') and (today_jst()-date.fromisoformat(dividend_calc['price_as_of'])).days<=7:
+        f['dividend_yield_pct']=dividend_calc['yield_pct']
+        dates['配当利回り株価']=dividend_calc['price_as_of']
     if not f_ok: reasons.append('有効な財務・配当データなし。既存の候補詳細から出典・基準日付きで登録できます。')
     clip=lambda v,m:max(Decimal(0),min(Decimal(m),v))
     per,pbr=_number(f,'per'),_number(f,'pbr')
@@ -164,3 +168,19 @@ def fetch_financial_step(db,adapter,code,cutoff):
             db.execute('INSERT INTO auto_financials VALUES(?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET attempted_at=excluded.attempted_at,status=excluded.status,error_code=excluded.error_code',
                 (code,'{}','',stamp,'error',exc.code))
         return exc.code
+
+
+def update_dividend(db,adapter,code,cutoff):
+    from src.market_data.jquants_dividends import calculate
+    row=db.execute('SELECT * FROM auto_financials WHERE code=?',(code,)).fetchone()
+    if not row or row['status']!='ok': return 'financials_missing'
+    data=json.loads(row['payload_json'])
+    stamp=rd.now()
+    try:
+        dividend=calculate(adapter,data.get('dividend_input',{}),cutoff)
+        data['dividend_calculation']=dict(dividend,fetched_at=stamp)
+    except MarketDataError as exc:
+        previous=data.get('dividend_calculation',{})
+        data['dividend_calculation']=dict(status='error',error_code=exc.code,fetched_at=stamp,last_success=previous if previous.get('status')=='ok' else previous.get('last_success'))
+    with db: db.execute('UPDATE auto_financials SET payload_json=? WHERE code=?',(json.dumps(data,ensure_ascii=False),code))
+    return data['dividend_calculation']['status']

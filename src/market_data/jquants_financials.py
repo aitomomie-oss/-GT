@@ -62,7 +62,7 @@ def fetch_financials(adapter,code,cutoff):
         valuation_date=None;valuation_status=exc.code
     except (KeyError,TypeError,ValueError): raise MarketDataError('invalid_response') from None
     # Do not derive dividend yield by mixing split bases across report and market dates.
-    return dict(values=values,as_of=latest['DiscDate'],period_end=latest['CurPerEn'],valuation_date=valuation_date,
+    return dict(dividend_input={k:latest.get(k) for k in ('Code','CurPerSt','CurPerEn','DiscDate','DivAnn')},values=values,as_of=latest['DiscDate'],period_end=latest['CurPerEn'],valuation_date=valuation_date,
         valuation_status=valuation_status,delayed=adapter.free_plan,history=history,
         source='J-Quants API V2 /fins/summary + /equities/valuation',
-        notes=['配当年額は原資料参照。配当利回りは株式分割の基準一致未確認のため自動計算しません。','成長率は同一DocTypeの連続する通期の公表実績を比較。会計変更・遡及修正は別途確認。'])
+        notes=['配当年額は原資料参照。「配当利回りを計算」で株式分割の基準と取得価格を確認して自動計算します。','成長率は同一DocTypeの連続する通期の公表実績を比較。会計変更・遡及修正は別途確認。'])

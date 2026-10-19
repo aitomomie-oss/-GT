@@ -14,6 +14,8 @@ def render_auto(db):
     with st.expander('日本株の自動探索（J-Quants V2）',expanded=False):
         from src.ui_discovery_budget import settings,detail_budget
         settings(db)
+        from src.ui_official_sync import render as render_official
+        render_official(db)
         st.caption('一覧を取得 → 対象を絞る → 次の3銘柄を取得。自動発注はありません。無料プランの遅延データは参考表示に限定します。')
         day=st.date_input('銘柄一覧の基準日',today_jst()-timedelta(days=84),max_value=today_jst(),key='auto_day')
         if st.button('銘柄一覧を取得・更新',key='auto_master'):
@@ -43,7 +45,7 @@ def render_auto(db):
             held=code_key(row['code'],'日本株','JPY') in context['held_codes'] or normalized(m['name']) in context['held_names']
             if unheld and held: continue
             selected.append(row)
-        st.caption(f'対象 {len(selected)}銘柄。取引停止情報は未取得です。売買可能と断定せず、取引前にSBI証券で確認してください。')
+        st.caption(f'対象 {len(selected)}銘柄。公式資料を設定すると取引停止を照合します。資料未取得・対象外の市場は未確認です。')
         if st.button('次の3銘柄の価格・リスクを取得',disabled=not selected,key='auto_step'):
             n=auto.fetch_step(db,JQuantsV2(),[r['code'] for r in selected],day-timedelta(days=180),day)
             st.info(f'{n}銘柄を処理しました。24時間以内に試行した銘柄はスキップします。エラー時は処理を中断します。')
@@ -64,7 +66,7 @@ def render_auto(db):
                 '取得株価（参考）':r['price'].get('price',{}).get('price'),'株価基準日':r['price'].get('as_of'),
                 '遅延':r['price'].get('delayed'),'評価点':float(r['score']) if r['score'] is not None else '評価保留',
                 'データ充足率':str(r['coverage'])+'%','既存の同業種直接保有比率':str(exposure['same_sector_pct'])+'%' if exposure['same_sector_pct'] is not None else '不明','割安性':r['components']['割安性'],'成長性':r['components']['成長性'],
-                '財務健全性':r['components']['財務健全性'],'必要購入額':str(buy['minimum']) if buy['minimum'] is not None else '不明','購入可能性':buy['status'],'配当利回り':r['dividend'],'保有区分':'保有' if r['held'] else '未保有',
+                '財務健全性':r['components']['財務健全性'],'必要購入額':str(buy['minimum']) if buy['minimum'] is not None else '不明','購入可能性':buy['status'],'公式停止情報':buy['official']['halt'],'公式NISA区分':buy['official']['nisa'],'配当利回り':r['dividend'],'保有区分':'保有' if r['held'] else '未保有',
                 '更新日時':r['fetched_at'],'推薦理由':' / '.join(k+'の確認値に基づく評価 '+str(v)+'点' for k,v in r['components'].items() if v is not None),'リスク評価':'過去の変動情報あり・将来リスクは不確実' if r['risk'] else 'リスク情報不足','注意点':' / '.join(r['reasons'])})
         st.dataframe(pd.DataFrame(table),hide_index=True)
         with st.expander('評価基準・計算式'):
@@ -82,7 +84,11 @@ def render_auto(db):
             st.line_chart(frame[['close']])
         if st.button('この企業の財務・指標を取得（契約範囲内）',key='auto_financial_fetch'):
             state=auto.fetch_financial_step(db,JQuantsV2(),r['code'],day)
+            if state=='updated': auto.update_dividend(db,JQuantsV2(),r['code'],day)
             st.session_state['auto_financial_message']=state
+            st.rerun()
+        if st.button('配当利回りを再計算',key='auto_dividend_fetch'):
+            st.session_state['auto_financial_message']=auto.update_dividend(db,JQuantsV2(),r['code'],day)
             st.rerun()
         if 'auto_financial_message' in st.session_state:
             st.info('財務取得結果: '+st.session_state.pop('auto_financial_message')+'。権限不足や遅延データは評価に使用しません。')
@@ -92,6 +98,7 @@ def render_auto(db):
             st.write('財務APIの出典・基準日', {k:financial.get(k) for k in ('source','as_of','period_end','valuation_date','valuation_status','delayed')})
             st.dataframe(pd.DataFrame(financial.get('history',[])),hide_index=True)
             st.write(financial.get('notes',[]))
+            st.write('配当利回りの自動計算結果（遅延時は過去の参考値）',financial.get('dividend_calculation',{'status':'未計算'}))
         st.write('評価に使用した財務の出典',r['fundamentals_source'])
         st.write('価格の出典・基準日', {k:r['price'].get(k) for k in ('source','as_of','delayed')})
         st.write('評価根拠',r['components']); st.write('財務・配当の確認値',r['fundamentals'])

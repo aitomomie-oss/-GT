@@ -77,8 +77,13 @@ def nisa_remaining(db,year):
 def purchase(db,result,mode='単元未満株',month=None):
     b=available(db,month);terms=load(db,'auto_purchase_terms','code',result['code']);p=result['price']
     reasons=[];minimum=None
+    from src.services.official_sync import lookup
+    official=lookup(db,result['code'],result.get('name',''))
+    if official['halt']!='未確認': reasons.append('公式取引停止情報: '+official['halt'])
+    if official['nisa']!='不明':
+        terms=dict(terms,nisa=official['nisa'])
     if not terms or (today_jst()-date.fromisoformat(terms['as_of'])).days>90:
-        reasons.append('購入条件・NISA対象の確認が必要です。');terms={}
+        reasons.append('購入条件・NISA対象の確認が必要です。');terms={'nisa':official['nisa']}
     if terms.get('sbi')!='可': reasons.append('SBI取扱い未確認または不可。')
     if terms.get('nisa') not in ('成長','両方'): reasons.append('日本株の成長投資枠対象を公式情報で確認してください。')
     unit=Decimal(1) if mode=='単元未満株' and terms.get('fractional')=='可' else Decimal(terms['lot_size']) if mode=='単元株' and terms.get('lot_size') else None
@@ -94,7 +99,7 @@ def purchase(db,result,mode='単元未満株',month=None):
     if minimum is not None and minimum>b['available']: status='翌月以降の検討候補（予算不足）'
     elif reasons: status='購入判定保留'
     else: status='入力条件上は予算・NISA枠内（購入前の確認必須）'
-    return dict(status=status,minimum=minimum,reasons=reasons,budget=b,terms=terms,nisa_remaining=remaining)
+    return dict(status=status,minimum=minimum,reasons=reasons,budget=b,terms=terms,nisa_remaining=remaining,official=official)
 
 
 def comparison(initial,payment,purchase_amount,years,base_rate,candidate_rates):

@@ -115,7 +115,7 @@ def evaluate(db,ident,years=10,risk_tolerance='中',month=None,cap=None):
         o=obs.get(dataset)
         if o is None:
             reasons.append(f'{dataset}: データ未登録'); continue
-        data[dataset]=o['data']
+        data[dataset]=dict(o['data'])
         if o['status']!='ok': reasons.append(f'{dataset}: 最新の更新に失敗（{o["error_code"]}）。前回データは参考表示のみ')
         good=o.get('last_success')
         if good is None: continue
@@ -136,8 +136,17 @@ def evaluate(db,ident,years=10,risk_tolerance='中',month=None,cap=None):
     budget=research_budget(db,month,cap)
     purchase=purchase_check(item,data,budget)
     if purchase['minimum_jpy'] is None: reasons.append('eligibility: 最低購入試算に必要な購入単位/最低額が未確認です')
+    from src.services.official_sync import lookup
+    official=lookup(db,item['code'],item['name'])
+    if official['nisa']!='不明':
+        data.setdefault('eligibility',{})['nisa']=official['nisa']
+        purchase=purchase_check(item,data,budget)
+    if official['halt']!='未確認':
+        reasons.append('公式取引停止情報: '+official['halt'])
+        purchase['status']='判定保留'
     ov=overlap(db,item,data)
     warnings=purchase['warnings'][:]
+    warnings.extend(official['warnings'])
     warnings.append(ov['reason'])
     if item['currency']=='USD': warnings.append('USD建て価格の下落に加え、円高で円換算評価額が下がる可能性があります。')
     if item['is_sample']: warnings.append('架空サンプルです。実在銘柄の推奨や実データではありません。')
@@ -195,7 +204,7 @@ def evaluate(db,ident,years=10,risk_tolerance='中',month=None,cap=None):
         'reference_annual_cost_pct':reference_cost,'candidate_annual_cost_pct':candidate_cost,
         'cost_difference_pct':candidate_cost-reference_cost if reference_cost is not None and candidate_cost is not None else None,
         'limitation':'保有商品の費用は商品設定の入力参考値で確認日未登録。候補費用の基準日/状態は別表を確認し、費用差を点数へ自動反映しません。'}
-    return dict(baseline_comparison=baseline_comparison,candidate=item,status='評価保留' if reasons else '評価済み',score=score,components=components,reasons=list(dict.fromkeys(reasons)),
+    return dict(official=official,baseline_comparison=baseline_comparison,candidate=item,status='評価保留' if reasons else '評価済み',score=score,components=components,reasons=list(dict.fromkeys(reasons)),
         warnings=warnings,overlap=ov,budget=budget,purchase=purchase,already_held=already_held(db,item),rule_version=RULE_VERSION,
         compared_with=BASELINE_NAME,reference_note='利用者指定の保有商品名からS&P500という参照指数のみを比較。保有数量・最新費用・構成比は未取得。',
         suitability='少額積立は要確認' if purchase['status'] in ('要確認','判定保留') else '残予算では最低購入額に不足' if purchase['status']=='予算超過' else '入力条件上は少額購入を検討可能。継続可能額と余裕資金を確認してください。',
@@ -215,7 +224,7 @@ def screen(db,query='',asset_types=None,unheld=True,region='',nisa_only=False,ma
         eligible=data.get('eligibility',{}).get('data',{})
         if unheld and value['already_held']: continue
         if region and region.casefold() not in str(exposure.get('region') or '').casefold(): continue
-        if nisa_only and (eligible.get('nisa') not in ('つみたて','成長','両方') or data.get('eligibility',{}).get('status')!='ok' or data.get('eligibility',{}).get('last_success',{}).get('delayed') or (today_jst()-date.fromisoformat(data['eligibility']['last_success']['as_of'])).days>MAX_AGE['eligibility']): continue
+        if nisa_only and value['official']['nisa']=='不明' and (eligible.get('nisa') not in ('つみたて','成長','両方') or data.get('eligibility',{}).get('status')!='ok' or data.get('eligibility',{}).get('last_success',{}).get('delayed') or (today_jst()-date.fromisoformat(data['eligibility']['last_success']['as_of'])).days>MAX_AGE['eligibility']): continue
         risk=eligible.get('risk_level')
         if max_risk!='指定なし' and (risk not in ('低','中','高') or ('低','中','高').index(risk)>('低','中','高').index(max_risk)): continue
         result.append(value)
