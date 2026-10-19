@@ -26,6 +26,7 @@ pages=st.navigation([
     st.Page('pages/5_資産シミュレーション.py', title='資産シミュレーション'),
     st.Page('pages/6_データ管理.py', title='データ管理'),
     st.Page('pages/7_AI銘柄探索.py', title='AI銘柄探索'),
+    st.Page('pages/8_検証・評価履歴.py', title='検証・評価履歴'),
 ], position='top')
 from src.ui_style import navigation_help
 navigation_help()

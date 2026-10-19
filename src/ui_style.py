@@ -21,6 +21,7 @@ def navigation_help():
         st.page_link('pages/2_保有資産.py',label='資産を登録・編集',icon='💼')
         st.page_link('pages/3_積立プラン.py',label='積立と予算を確認',icon='📅')
         st.page_link('pages/7_AI銘柄探索.py',label='銘柄を検索・ウォッチ',icon='🔎')
+        st.page_link('pages/8_検証・評価履歴.py',label='データを検証・履歴を見る',icon='📝')
         with st.expander('画面の見方'):
             st.write('1. ホームで資産と残予算を確認')
             st.write('2. 銘柄探索で気になる商品を検索')

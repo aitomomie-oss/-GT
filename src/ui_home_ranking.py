@@ -10,6 +10,7 @@ from src.services.ranking_refresh import status
 from src.services.discovery import code_key,normalized
 from src.utils.decimal_utils import today_jst
 from src.ui_presentation import amount,overview,update_rows,price_state
+import sqlite3
 
 
 def jst(value):
@@ -144,6 +145,13 @@ def panel(path):
                 st.info('現在のランキングは未確定です。無料プランの遅延価格や指標不足がある場合、待つだけでは評価保留は解消しません。')
                 st.caption('下の候補詳細では、過去の参考価格や不足項目を確認し、気になる銘柄をウォッチできます。')
             choices=top+[r for r in items if r['score'] is None][:10]
+            if choices:
+                from src.services.evaluation_audit import capture
+                try:
+                    capture(db,[r['code'] for r in choices])
+                except (ValueError,sqlite3.OperationalError):
+                    st.warning('今回の評価履歴を保存できませんでした。検証・評価履歴画面から再保存してください。')
+            st.page_link('pages/8_検証・評価履歴.py',label='取得値を検証・以前の評価と比較する')
             codes=tuple(r['code'] for r in choices)
             if st.session_state.get('home_rank_result_codes')!=codes:
                 active=st.session_state.get('home_rank_active_code')

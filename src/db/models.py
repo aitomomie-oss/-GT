@@ -130,3 +130,14 @@ ranking_jobs = Table('ranking_jobs',metadata,
 ranking_trade_rules = Table('ranking_trade_rules',metadata,
     Column('code',Text,primary_key=True),Column('mode',Text,primary_key=True),Column('fee_jpy',Text,nullable=False),
     Column('spread_pct',Text,nullable=False),Column('as_of',Text,nullable=False),Column('source',Text,nullable=False))
+# Append-only research audit; deliberately no FK to deletable candidates/holdings.
+evaluation_snapshots = Table('evaluation_snapshots',metadata,
+    Column('id',Integer,primary_key=True),Column('code',Text,nullable=False),Column('name',Text,nullable=False),
+    Column('rule',Text,nullable=False),Column('recorded_at',Text,nullable=False),Column('recorded_day',Text,nullable=False),
+    Column('fingerprint',Text,nullable=False),Column('payload_json',Text,nullable=False))
+Index('ix_evaluation_history',evaluation_snapshots.c.code,evaluation_snapshots.c.id)
+data_verifications = Table('data_verifications',metadata,
+    Column('id',Integer,primary_key=True),Column('snapshot_id',ForeignKey('evaluation_snapshots.id'),nullable=False),
+    Column('metric',Text,nullable=False),Column('recorded_at',Text,nullable=False),
+    Column('supersedes_id',ForeignKey('data_verifications.id')),Column('payload_json',Text,nullable=False))
+Index('ix_verifications_snapshot',data_verifications.c.snapshot_id,data_verifications.c.id)
