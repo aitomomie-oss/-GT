@@ -6,7 +6,7 @@ from decimal import Decimal
 import pandas as pd
 import streamlit as st
 
-from src.services import evaluation_audit as audit, ranking
+from src.services import evaluation_audit as audit, ranking, daily_history
 from src.services.discovery import code_key, normalized
 from src.ui_home_ranking import jst
 from src.utils.decimal_utils import today_jst
@@ -92,6 +92,34 @@ def _history(db,record):
     st.download_button('この評価の記録をJSONで保存',data=json.dumps(record,ensure_ascii=False,indent=2),file_name=f"evaluation_{record['code']}_{ident}.json",mime='application/json',key=f'audit_download_{ident}')
 
 
+def _daily(db, record):
+    rows = daily_history.daily_history(record, audit.verifications(db, record['id']))
+    st.write('**保存済み日別データ**')
+    st.caption('選択した評価履歴に保存された価格です。現在の株価・最新キャッシュへの再取得は行いません。')
+    st.warning('この一覧は取得データの確認用です。同じ取得元の数値を見比べても独立した照合にはなりません。公式確認値は資料で確認した値だけを別欄に記録します。')
+    if not rows:
+        st.info('この評価履歴には日別データが保存されていません。欠けた日付や価格を補完せず、既存の取得値と履歴を保持します。')
+        return
+    days = sorted({row['date'] for row in rows if row['date']})
+    selected = st.selectbox('日付で絞り込む', ['すべて'] + list(reversed(days)), key=f"audit_daily_day_{record['id']}")
+    shown = rows if selected == 'すべて' else [row for row in rows if row['date'] == selected]
+    st.caption(f'保存済み {len(rows)}行 / 表示 {len(shown)}行。期間内でも保存されていない日付は表示しません。')
+    st.dataframe(pd.DataFrame([{
+        '価格基準日': row['date'] or '不明', '未調整終値（円）': _value(row['close']),
+        '調整後終値（円）': _value(row['adjusted_close']), '出来高（株・口）': _value(row['volume']),
+        '照合判定': row['verification'], '公式確認値': _value(row['reference_value']),
+        '公式確認値の基準日': row['reference_as_of'] or '未確認',
+        '遅延データ': '不明' if row['delayed'] is None else 'あり' if row['delayed'] else 'なし',
+        '保存時取得状態': row['status'], '取得元': row['source'] or '未取得',
+        '最終取得成功日時': jst(row['fetched_at']), '注意': row['note'],
+    } for row in shown]), hide_index=True, width='stretch')
+    st.download_button('表示中の日別データをCSVで保存',
+        data=daily_history.export_daily(record, shown),
+        file_name=f"MY_AI_ASSET_日別照合_{record['code']}_{record['id']}.csv", mime='text/csv',
+        key=f"audit_daily_csv_{record['id']}")
+    st.caption('CSVはExcel向けUTF-8 BOM付きです。独立確認値・確認資料URLの記入欄は空欄です。CSVの編集内容をDBへ取り込む機能はありません。')
+
+
 def render(db):
     st.header('検証・評価履歴')
     st.write('評価に使った情報を残し、公式資料との差と、前回からの変化を確認します。')
@@ -118,9 +146,10 @@ def render(db):
     # Options are stable IDs, so new records do not silently switch the target.
     ident=st.selectbox('確認する評価履歴',list(options),format_func=options.get,key='audit_selected_snapshot')
     record=audit.get(db,ident)
-    views=st.tabs(['公式資料と照合','評価の履歴・前回との差','検証記録を出力'])
+    views=st.tabs(['公式資料と照合','評価の履歴・前回との差','検証記録を出力','日別データ・照合用CSV'])
     with views[0]: _verification(db,record)
     with views[1]: _history(db,record)
     with views[2]:
         st.caption('CSVには入力した確認値・URL・メモ・訂正前の記録を含みます。保存先はご自身のPCです。')
         st.download_button('照合記録をCSVで保存',data=audit.export_checks(db),file_name='MY_AI_ASSET_検証記録.csv',mime='text/csv')
+    with views[3]: _daily(db, record)
