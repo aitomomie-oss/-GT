@@ -10,6 +10,7 @@ from src.services import evaluation_audit as audit, ranking, daily_history
 from src.services.discovery import code_key, normalized
 from src.ui_home_ranking import jst
 from src.utils.decimal_utils import today_jst
+from src.ui_data_quality import render as quality_summary
 
 
 def _value(value):
@@ -123,6 +124,7 @@ def _daily(db, record):
 def render(db):
     st.header('検証・評価履歴')
     st.write('評価に使った情報を残し、公式資料との差と、前回からの変化を確認します。')
+    quality_summary(db)
     if notice:=st.session_state.pop('audit_notice',None): st.success(notice)
     st.info('ホームで表示する候補（最大20件）は、1日1回とデータ変更時に自動保存します。ほかの銘柄は下から保存できます。過去の未保存評価は復元しません。')
     with st.expander('評価を新しく保存する',expanded=not bool(audit.history(db,limit=1))):
