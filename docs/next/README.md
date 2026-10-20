@@ -12,6 +12,7 @@
 | [Windowsでの確認手順](windows_verification.md) | 起動元・DB・設定を漏えいさせずに確認する手順 |
 | [開発コピーの準備・版とDBの比較](development_preparation.md) | Windowsでのコピー成功・0df3477/31テーブルの確認結果、次の環境導入手順 |
 | [評価履歴追加の準備・検証](evaluation_upgrade.md) | 元開発コピーを保全し、新しい開発コピーだけで追加テーブルと全テストを確認する手順 |
+| [日別データ・照合用CSVの追加](daily_history_update.md) | 保存済み価格の一覧と独立確認欄を持つCSV、バックアップ・テスト後に4ファイルだけ適用する手順 |
 
 調査コードの基準コミット：`0eaedc06b674c7b813580f030c6b9f1802b04844`。
 調査用ブランチ：`audit/my-ai-asset-next`。
